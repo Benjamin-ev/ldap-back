@@ -2,13 +2,15 @@ FROM node:16
 
 WORKDIR /app
 
-COPY package.json
-COPY package-lock.json
+COPY package.json ./
+COPY package-lock.json ./
 
 RUN npm install
 
-COPY server.js
-COPY ../ldap-front/out
+RUN mkdir ../front/out
+
+COPY . .
+COPY ../ldap-front/out ../ldap-front/out
 
 EXPOSE 8080
 

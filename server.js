@@ -72,15 +72,15 @@ app.use(cors({
   credentials: true
 }))
 app.use(express.json())
-app.use(express.static(path.join(__dirname, '../front/out')))
+app.use(express.static(path.join(__dirname, process.env.FRONT_URL)))
 
 const routes = ['users', 'groups', 'modify', 'new']
 app.get('/', (req,res) => {
-  res.sendFile(path.join(__dirname, '../front/out/index.html')) // Route principale, page d'accueil
+  res.sendFile(path.join(__dirname, process.env.FRONT_URL+'/index.html')) // Route principale, page d'accueil
 })
 routes.map(item => 
   app.get('/'+item, (req, res) => {
-    res.sendFile(path.join(__dirname, '../front/out/'+item+'.html')) // Différentes routes de l'application, permet le refresh de la page
+    res.sendFile(path.join(__dirname, process.env.FRONT_URL+'/'+item+'.html')) // Différentes routes de l'application, permet le refresh de la page
   })
 )
 
@@ -90,7 +90,7 @@ app.use('/api/users', auth, usersRoute) // Routes avec le middleware d'authentif
 app.use('/api/groups', auth, groupsRoute)
 
 app.get('*', (req, res) => 
-  res.sendFile(path.join(__dirname, '../front/out/404.html')) // Route 404 si on cela ne mène a rien
+  res.sendFile(path.join(__dirname, process.env.FRONT_URL+'/404.html')) // Route 404 si on cela ne mène a rien
 )
 
 app.set('port', 4040)
