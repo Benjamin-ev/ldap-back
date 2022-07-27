@@ -20,7 +20,7 @@ const setToken = ((req, res) => {
   req.setEncoding('utf8')
 
   const client = ldap.createClient({
-    url: 'ldap://'+process.env.LDAP_IP
+    url: process.env.LDAP_IP
   })
   client.on('error', (err) => {
     console.log("Connexion error : " + err);
