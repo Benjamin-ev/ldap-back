@@ -90,7 +90,7 @@ app.use('/api/users', auth, usersRoute) // Routes avec le middleware d'authentif
 app.use('/api/groups', auth, groupsRoute)
 
 app.get('*', (req, res) => 
-  res.sendFile(path.join(__dirname, process.env.FRONT_URL+'/404.html')) // Route 404 si on cela ne mène a rien
+  res.sendFile(path.join(__dirname, process.env.FRONT_URL+'/404.html')) // Route 404 si cela ne mène a rien
 )
 
 app.set('port', 4040)
