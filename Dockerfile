@@ -7,11 +7,8 @@ COPY package-lock.json ./
 
 RUN npm install
 
-RUN mkdir ../front/out
-
 COPY . .
-COPY ../ldap-front/out ../ldap-front/out
 
-EXPOSE 8080
+EXPOSE 4040
 
 CMD [ "node", "server.js" ]
