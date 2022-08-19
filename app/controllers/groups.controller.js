@@ -121,52 +121,33 @@ const modifyGroup = ((req, res) => {
 
 const updateGroups = ((req, res) => {
     try {
+        const uid = req.body.user
+        const group = req.body.group
+        const action = req.body.action
+
         client = connexion()
         
-        Promise.all([
-            searchLDAP(client, '(!(cn=members))', 'ou=groups, dc=boquette, dc=fr'),
-            searchLDAP(client, 'uid=*', 'ou=people, dc=boquette, dc=fr')
-        ])
-        .then(data => {
-            const groups = data[0]
-            const users = data[1]
-        
+        new Promise((resolve, reject) => {
             client.bind('cn='+process.env.LDAP_CN+',dc=boquette,dc=fr', process.env.LDAP_PASSWORD, () => {})
-
-            for (let i = 0; i < groups.length; i++) {
-                const change = new ldap.Change({
+            var change
+            if (action == "del") {
+                change = new ldap.Change({
                     operation: 'delete',
                     modification: {
-                        memberUid: ''
+                        memberUid: uid
                     }
                 })
-
-                client.modify('cn='+groups[i].cn+',ou=groups,dc=boquette,dc=fr', change, () => {})
-
-                var group = []
-
-                for (let j = 0; j < users.length; j++) {
-                    if (users[j].isInGrps !== '') {
-                        var user = users[j]
-                        var userGroups = user.isInGrps.trim().split(';')
-                        
-                        if (userGroups.includes(groups[i].cn)) {
-                            group.push(user.uid)
-                        }   
+            } else if (action == "add") {
+                change = new ldap.Change({
+                    operation: 'add',
+                    modification: {
+                        memberUid: uid
                     }
-                }
-
-                if (group.length !== 0) {
-                    const change = new ldap.Change({
-                        operation: 'add',
-                        modification: {
-                            memberUid: group
-                        }
-                    })
-
-                    client.modify('cn='+groups[i].cn+',ou=groups,dc=boquette,dc=fr', change, () => {})
-                }
+                })
+            } else {
+                res.sendStatus(404)
             }
+            client.modify('cn='+group.cn+',ou=groups,dc=boquette,dc=fr', change, () => {resolve()})
         })
         .then(client.unbind())
         .then(res.sendStatus(200))

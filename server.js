@@ -51,15 +51,22 @@ const auth = ((req, res, next) => {
     client.search('dc=boquette, dc=fr', opts, (err, response) => {
       if (err == undefined) {
         response.on('searchEntry', (entry) => {
+          
           if (entry.object == undefined) {
             return res.status(401).send("Invalid Credentials")
+          } else {
+            client.bind('cn='+username+',dc=boquette, dc=fr', process.env.LDAP_PASSWORD, (err) => {
+              if (err) {
+                return res.status(401).send("Invalid Credentials")
+              } else {
+                return next()
+              }
+            })
           }
-          req.user = username
         })
       }
     })
         
-    return next()
   } catch (err) {
     return res.status(500).send("Internal Authentification Server Error")
   }
@@ -73,7 +80,7 @@ app.use(cors({
 app.use(express.json())
 app.use(express.static(path.join(__dirname, process.env.FRONT_URL)))
 
-const routes = ['users', 'groups', 'modify', 'new']
+const routes = ['users', 'groups', 'modify', 'new', 'profile']
 app.get('/', (req,res) => {
   res.sendFile(path.join(__dirname, process.env.FRONT_URL+'/index.html')) // Route principale, page d'accueil
 })

@@ -2,6 +2,10 @@ var ldap = require('ldapjs')
 
 const ssha = require('ssha')
 
+var nodemailer = require('nodemailer')
+
+require('dotenv').config()
+
 const connexion = (() => {
     const client = ldap.createClient({
         url: process.env.LDAP_IP
@@ -100,15 +104,14 @@ const createUser = ((req, res) => {
                 displayName: user.displayName,
                 description: user.description,
                 userPassword: ssha.create('boquette'),
-                nextcloudSpace: user.nextcloudSpace,
-                isInGrps: user.isInGrps,
-                nextcloudSpace: '10GB',
-                bouls: user.bouls,
-                gadzflix: user.gadzflix
+                bouls: user.bouls
             }
             client.add('uid='+entry.uid+',ou=people,dc=boquette,dc=fr', entry, () => {})
         })
-        .then(client.unbind())
+        .then(() => {
+            client.unbind()
+            envoiMail(user.mail)
+        })
         .then(res.sendStatus(200)) 
     } catch (err) {
         res.sendStatus(500)
@@ -145,30 +148,11 @@ const createUsers = ((req, res) => {
                         displayName: user[2],
                         description: user[1],
                         userPassword: ssha.create('boquette'),
-                        isInGrps: user[8],
-                        nextcloudSpace: '10GB',
-                        bouls: user[7],
-                        gadzflix: user[9]
+                        bouls: user[7]
                     }
 
                     client.add('uid='+entry.uid+',ou=people,dc=boquette,dc=fr', entry, () => {})
                 }
-
-                // if (users[i].split(';')[8]) {
-                //     var groups = users[i].split(';')[8].split(',')
-                //     var uid = users[i].split(';')[0]
-
-                //     for (let j = 0; j < groups.length; j++) {
-                //         const change = new ldap.Change({
-                //             operation: 'add',
-                //             modification: {
-                //                 memberUid: uid
-                //             }
-                //         })
-
-                //         client.modify('cn='+groups[j]+',ou=groups,dc=boquette,dc=fr', change, (err) => {})
-                //     }
-                // }
             }
         })
         .then(client.unbind())
@@ -213,7 +197,7 @@ const modifyUsers = ((req, res) => {
 
         client = connexion()
         new Promise((resolve, reject) => {
-            client.bind('cn=admin,dc=boquette,dc=fr', 'boquette1815', () => {})
+            client.bind('cn='+process.env.LDAP_CN+',dc=boquette,dc=fr', process.env.LDAP_PASSWORD, () => {})
 
             for (let i = 0; i < users.length; i++) {
                 if (users[i] !== '') {
@@ -244,7 +228,7 @@ const deleteUser = ((req, res) => {
         const user = req.body.dn
 
         client = connexion()
-        client.bind('cn=admin,dc=boquette,dc=fr', 'boquette1815', () => {})
+        client.bind('cn='+process.env.LDAP_CN+',dc=boquette,dc=fr', process.env.LDAP_PASSWORD, () => {})
         client.del(user, () => {})
         client.unbind()
 
@@ -252,6 +236,31 @@ const deleteUser = ((req, res) => {
     } catch (err) {
         res.sendStatus(500)
     }
+})
+
+const envoiMail = ((dest) => {
+    let mailTransporter = nodemailer.createTransport({
+        host: 'ssl0.ovh.net',
+        auth: {
+            user: process.env.MAIL_ADDRESS,
+            pass: process.env.MAIL_MDP
+        }
+    })
+
+    let mailDetails = {
+        from: 'Equipe support - Boquette <support@boquette.fr>',
+        to: dest,
+        subject: 'Information - Votre nouveau compte Boquette',
+        text: 'Bonjour, Nous vous informons que votre compte boquette a bien été créé'
+    }
+
+    mailTransporter.sendMail(mailDetails, function(err, data) {
+        if(err) {
+            console.log('Error Occurs', err)
+        } else {
+            console.log('Email sent successfully')
+        }
+    })
 })
 
 module.exports = {

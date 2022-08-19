@@ -15,6 +15,26 @@ const connexion = (() => {
     return client
 })
 
+const searchLDAP = function(client, filter, dn) {
+    return new Promise((resolve, reject) => {
+        var opts = {
+            filter: filter,
+            scope: 'sub'
+        }
+        client.search(dn, opts, (err, response) => {
+            if (!err) {
+                var output = []
+                response.on('searchEntry', (entry) => {
+                    output.push(entry.object)
+                })
+                response.on('end', () => {
+                    resolve(output)
+                })
+            }
+        })
+    })
+}
+
 const searchUidLDAP = ((client) => {
     return new Promise((resolve, reject) => {
         var opts = {
@@ -35,6 +55,25 @@ const searchUidLDAP = ((client) => {
     })
 })
 
+const getUser = ((req, res) => {
+    try {
+        const { headers } = req
+
+        client = connexion()
+
+        client.bind('uid='+headers.uid+',ou=people,dc=boquette,dc=fr', headers.password, (err) => {
+            if (err) {
+                res.status(401).send('Invalid Credentials')
+            } else {
+                searchLDAP(client, '(uid='+headers.uid+')', 'ou=people,dc=boquette,dc=fr')
+                .then(output => res.send(output))
+            }
+        })
+    } catch (err) {
+        res.sendStatus(500)
+    } 
+})
+
 const createUser = ((req, res) => {
     try {
         req.setEncoding('utf8')
@@ -48,7 +87,7 @@ const createUser = ((req, res) => {
             client.bind('cn='+process.env.LDAP_CN+',dc=boquette,dc=fr', process.env.LDAP_PASSWORD, () => {})
             
             const entry = {
-                objectClass: ['inetOrgPerson', 'posixAccount', 'boquetteUser'],
+                objectClass: ['inetOrgPerson', 'posixAccount'],
                 cn: uid,
                 homeDirectory: '/home/'+uid,
                 loginShell: '/bin/bash',
@@ -59,9 +98,7 @@ const createUser = ((req, res) => {
                 givenName: user.givenName,
                 mail: user.mail,
                 mobile: user.mobile,
-                userPassword: ssha.create(user.password),
-                nextcloudSpace: '10GB',
-                gadzflix: 'FALSE'
+                userPassword: ssha.create(user.password)
             }
 
             client.add('uid='+uid+',ou=people,dc=boquette,dc=fr', entry, () => {})
@@ -113,6 +150,7 @@ const modifyUser = ((req, res) => {
 })
 
 module.exports = {
+    getUser,
     createUser,
     modifyUser
 }
