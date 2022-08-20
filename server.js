@@ -8,6 +8,8 @@ const path = require('path')
 
 var ldap = require('ldapjs')
 
+require('dotenv')
+
 const authRoute = require('./app/routes/auth.route.js')
 const userRoute = require('./app/routes/user.route.js')
 const usersRoute = require('./app/routes/users.route.js')
