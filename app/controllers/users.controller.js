@@ -178,7 +178,7 @@ const modifyUser = ((req, res) => {
                     operation: 'replace',
                     modification: modif
                 })
-                client.modify('uid='+user.uid+',ou=people,dc=boquette,dc=fr', change, () => {})
+                client.modify(user.dn, change, () => {})
             }
         })
         .then(client.unbind())
