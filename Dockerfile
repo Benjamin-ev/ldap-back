@@ -1,11 +1,7 @@
 FROM node:18
+FROM ldap_modules:latest
 
 WORKDIR /app
-
-COPY package.json ./
-COPY package-lock.json ./
-
-RUN npm install
 
 COPY . .
 
