@@ -98,7 +98,7 @@ const createUser = ((req, res) => {
                 givenName: user.givenName,
                 mail: user.mail,
                 mobile: user.mobile,
-                userPassword: ssha.create(user.password)
+                userPassword: ssha.create(user.password.replace(/\s+/g, ''))
             }
 
             client.add('uid='+uid+',ou=people,dc=boquette,dc=fr', entry, () => {})
