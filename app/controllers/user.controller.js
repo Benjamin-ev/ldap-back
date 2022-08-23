@@ -79,7 +79,7 @@ const createUser = ((req, res) => {
         req.setEncoding('utf8')
 
         const user = req.body
-        var uid = user.givenName.toLowerCase()+'.'+user.sn.toLowerCase()+'.'+new Date().getFullYear()
+        var uid = user.givenName.toLowerCase()+'.'+user.sn.toLowerCase()+'.2021'//+new Date().getFullYear()
 
         client = connexion()
         searchUidLDAP(client)
