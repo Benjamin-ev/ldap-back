@@ -9,10 +9,7 @@ const getUser = ((req, res) => {
     try {
         client = ldap.connexion()
         ldap.searchLDAP(client, 'uid='+req.params.userId, 'ou=people, dc=boquette, dc=fr')
-        .then(output => {
-            res.send(output)
-            client.unbind()
-        })
+        .then(output => res.send(output))
     } catch (err) {
         res.sendStatus(500)
     }
@@ -22,10 +19,7 @@ const getAllUsers = ((req, res) => {
     try {
         client = ldap.connexion()
         ldap.searchLDAP(client, 'uid=*', 'ou=people, dc=boquette, dc=fr')
-        .then(output => {
-            res.send(output)
-            client.unbind()
-        })
+        .then(output => res.send(output))
     } catch (err) {
         res.sendStatus(500)
     }
@@ -60,10 +54,7 @@ const createUser = ((req, res) => {
                 bouls: user.bouls
             }
             client.add('uid='+entry.uid+',ou=people,dc=boquette,dc=fr', entry, (err) => {console.log(err)})
-        })
-        .then(() => {
             client.unbind()
-            envoiMail(user.mail)
         })
         .then(res.sendStatus(200)) 
     } catch (err) {
@@ -85,6 +76,7 @@ const createUsers = ((req, res) => {
             for (let i = 0; i < users.length; i++) {
                 if(users[i] !== '') {
                     var user = users[i].split(';')
+                    var pass = Math.random().toString(36).slice(-8)
 
                     const entry = {
                         objectClass: ['inetOrgPerson', 'posixAccount', 'boquetteUser'],
@@ -100,15 +92,17 @@ const createUsers = ((req, res) => {
                         mobile: user[6],
                         displayName: user[2],
                         description: user[1],
-                        userPassword: ssha.create('boquette'),
+                        userPassword: ssha.create(pass),
                         bouls: user[7]
                     }
-
                     client.add('uid='+entry.uid+',ou=people,dc=boquette,dc=fr', entry, (err) => {console.log(err)})
+                    envoiMail(user[5], 'Création de votre compte Boquette',
+                        'Bonjour,\n\nVotre compte Boquette à été créé, cependant il vous faut changer votre mot de passe\n\nRendez-vous sur https://utilisateur.boquette.fr/modify pour cela\nVotre mot de passe de vérification : '+pass+'\n\nExcellente journée,\nL\'équipe Boquette Infal'
+                    )
                 }
             }
+            client.unbind()
         })
-        .then(client.unbind())
         .then(res.sendStatus(200))
     } catch (err) {
         res.sendStatus(500)
@@ -168,6 +162,31 @@ const modifyUsers = ((req, res) => {
     }
 })
 
+const modifyPass = ((req, res) => {
+    try {
+        req.setEncoding('utf-8')
+
+        const user = req.body
+
+        const pass = Math.random().toString(36).slice(-8)
+
+        client = ldap.connexion()
+        new Promise((resolve, reject) => {
+            client.bind('cn='+process.env.LDAP_CN+',dc=boquette,dc=fr', process.env.LDAP_PASSWORD, (err) => {console.log(err)})
+            const modif = Object.fromEntries(new Map().set('userPassword', ssha.create(pass)))
+            ldap.modifyLDAP(client, modif, user.dn)
+            client.unbind()
+        })
+        .then(
+            envoiMail(user.mail,'Réinitialisation de votre Mot de Passe Boquette',
+            'Bonjour,\n\nLe Mot de Passe de votre compte Boquette à été réinitialisé\n\nVeuillez vous rendre sur https://utilisateur.boquette.fr/modify afin de modifier votre mot de passe\n\nMot de passe de vérification : '+pass+'\n\nExcellente journée,\nL\'équipe Boquette Infal')
+        )
+        .then(res.sendStatus(200))
+    } catch(err) {
+        res.sendStatus(500)
+    }
+})
+
 const deleteUser = ((req, res) => {
     try {
         req.setEncoding('utf8')
@@ -185,7 +204,7 @@ const deleteUser = ((req, res) => {
     }
 })
 
-const envoiMail = ((dest) => {
+const envoiMail = ((dest, subject, text) => {
     let mailTransporter = nodemailer.createTransport({
         host: 'ssl0.ovh.net',
         auth: {
@@ -197,15 +216,13 @@ const envoiMail = ((dest) => {
     let mailDetails = {
         from: 'Equipe support - Boquette <support@boquette.fr>',
         to: dest,
-        subject: 'Information - Votre nouveau compte Boquette',
-        text: 'Bonjour, Nous vous informons que votre compte boquette a bien été créé'
+        subject: subject,
+        text: text
     }
 
     mailTransporter.sendMail(mailDetails, function(err, data) {
         if(err) {
-            console.log('Error Occurs', err)
-        } else {
-            console.log('Email sent successfully')
+            console.log('Error Mail', err)
         }
     })
 })
@@ -217,5 +234,6 @@ module.exports = {
     createUsers,
     modifyUser,
     modifyUsers,
+    modifyPass,
     deleteUser
 }

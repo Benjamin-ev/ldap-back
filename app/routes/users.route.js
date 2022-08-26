@@ -8,6 +8,7 @@ const  {
     createUsers,
     modifyUser,
     modifyUsers,
+    modifyPass,
     deleteUser
 } = require('../controllers/users.controller.js')
 
@@ -22,6 +23,8 @@ router.post('/users', createUsers)
 router.put('/', modifyUser)
 
 router.put('/users', modifyUsers)
+
+router.patch('/', modifyPass)
 
 router.delete('/', deleteUser)
 

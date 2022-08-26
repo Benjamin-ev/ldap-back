@@ -72,7 +72,7 @@ const modifyUser = ((req, res) => {
             } else {
                 client.unbind()
                 new Promise((resolve, reject) => {
-                    client = connexion()
+                    client = ldap.connexion()
                     client.bind('cn='+process.env.LDAP_CN+',dc=boquette,dc=fr', process.env.LDAP_PASSWORD, (err) => {console.log(err)})
 
                     for (let key in user) {
