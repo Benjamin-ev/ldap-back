@@ -1,10 +1,9 @@
 const jwt = require('jsonwebtoken')
 const crypto = require('crypto')
+const ldap = require('../ldap/ldap')
 
 // chargement du fichier d'env
 require('dotenv').config()
-
-var ldap = require('ldapjs');
 
 function generateAccessToken(user, xsrfToken) {
   return jwt.sign(
@@ -20,17 +19,13 @@ const setToken = ((req, res) => {
   try {
     req.setEncoding('utf8')
 
-    const client = ldap.createClient({
-      url: process.env.LDAP_IP
-    })
-    client.on('error', (err) => {
-      console.log("Connexion error : " + err);
-    })
-
+    client = ldap.connexion()
     client.bind('cn=' + req.body.username + ', dc=boquette, dc=fr', req.body.password, (err) => {
       if (err == undefined) {
         const xsrfToken = crypto.randomBytes(64).toString('hex')
         const accessToken = generateAccessToken(req.body.username, xsrfToken)
+
+        client.unbind()
 
         res.cookie('access_token', accessToken, {
           httpOnly: true,
@@ -41,9 +36,9 @@ const setToken = ((req, res) => {
           xsrfToken
         })
       } else {
+        client.unbind()
         res.status(401).send("Invalid Credentials")
       }
-      client.unbind()
     })
   } catch (err) {
     res.sendStatus(500)
