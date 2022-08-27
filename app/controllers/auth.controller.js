@@ -19,14 +19,13 @@ const setToken = ((req, res) => {
   try {
     req.setEncoding('utf8')
 
-    client = ldap.connexion()
+    var client = ldap.connexion()
     client.bind('cn=' + req.body.username + ', dc=boquette, dc=fr', req.body.password, (err) => {
-      if (err == undefined) {
+      if (!err) {
         const xsrfToken = crypto.randomBytes(64).toString('hex')
         const accessToken = generateAccessToken(req.body.username, xsrfToken)
 
-        client.unbind()
-
+        client.destroy()
         res.cookie('access_token', accessToken, {
           httpOnly: true,
           secure: false,
@@ -36,7 +35,7 @@ const setToken = ((req, res) => {
           xsrfToken
         })
       } else {
-        client.unbind()
+        client.destroy()
         res.status(401).send("Invalid Credentials")
       }
     })

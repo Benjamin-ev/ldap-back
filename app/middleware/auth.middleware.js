@@ -26,7 +26,7 @@ const auth = ((req, res, next) => {
     
         const username = decodedToken.data
 
-        client = ldap.connexion()
+        var client = ldap.connexion()
         var opts = {
             filter: '(cn='+username+')',
             scope: 'sub'
@@ -39,10 +39,10 @@ const auth = ((req, res, next) => {
                     } else {
                         client.bind('cn='+username+',dc=boquette, dc=fr', process.env.LDAP_PASSWORD, (err) => {
                             if (err) {
-                                client.unbind()
+                                client.destroy()
                                 return res.status(401).send("Invalid Credentials")
                             } else {
-                                client.unbind()
+                                client.destroy()
                                 return next()
                             }
                         })
@@ -50,7 +50,6 @@ const auth = ((req, res, next) => {
                 })
             }
         })
-        client.unbind()
     } catch (err) {
         return res.status(500).send("Internal Authentification Server Error")
     }

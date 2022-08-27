@@ -25,7 +25,6 @@ const searchLDAP = function(client, filter, dn) {
                     output.push(entry.object)
                 })
                 response.on('end', () => {
-                    client.destroy()
                     resolve(output)
                 })
             }
@@ -46,7 +45,6 @@ const searchUidLDAP = ((client) => {
                     output.push(entry.object.uidNumber)
                 })
                 response.on('end', () => {
-                    client.detroy()
                     resolve(parseInt(output.sort().pop())+1)
                 })
             }
@@ -59,7 +57,7 @@ const modifyLDAP = ((client, modif, dn) => {
         operation: 'replace',
         modification: modif
     })
-    client.modify(dn, change, (err) => {console.log(err)})
+    client.modify(dn, change, (err) => {client.destroy()})
 })
 
 module.exports = {

@@ -3,9 +3,10 @@ const ldapjs = require('ldapjs')
 
 const getAllGroups = ((req, res) => {
     try {
-        client = ldap.connexion()
+        var client = ldap.connexion()
         ldap.searchLDAP(client, 'cn=*', 'ou=groups, dc=boquette, dc=fr')
         .then(output => {
+            client.destroy()
             res.send(output)
         })
     } catch (err) {
@@ -15,9 +16,10 @@ const getAllGroups = ((req, res) => {
 
 const getGroup = ((req, res) => {
     try {
-        client = ldap.connexion()
+        var client = ldap.connexion()
         ldap.searchLDAP(client, 'cn='+req.params.groupId, 'ou=groups, dc=boquette, dc=fr')
         .then(output => {
+            client.destroy()
             res.send(output)
         })
     } catch (err) {
@@ -31,7 +33,7 @@ const createGroup = ((req, res) => {
 
         const group = req.body
 
-        client = ldap.connexion()
+        var client = ldap.connexion()
         new Promise(function(resolve,reject) {
             var opts = {
                 filter: 'cn=*',
@@ -58,8 +60,7 @@ const createGroup = ((req, res) => {
                 description: group.description,
                 strass: group.strass
             }
-            client.add('cn='+group.cn+',ou=groups,dc=boquette,dc=fr', entry, () => {})
-            client.unbind()
+            client.add('cn='+group.cn+',ou=groups,dc=boquette,dc=fr', entry, (err) => {client.destroy()})
         })
         .then(res.sendStatus(200))
     } catch (err) {
@@ -73,17 +74,15 @@ const modifyGroup = ((req, res) => {
 
         const group = req.body
 
-        client = ldap.connexion()
-        new Promise((resolve, reject) => {
-            client.bind('cn='+process.env.LDAP_CN+',dc=boquette,dc=fr', process.env.LDAP_PASSWORD, (err) => {console.log(err)})
+        for (let key in group) {
+            const modif = Object.fromEntries(new Map().set(key, group[key]))
+            
+            var client = ldap.connexion()
+            client.bind('cn='+process.env.LDAP_CN+',dc=boquette,dc=fr', process.env.LDAP_PASSWORD, () => {})
+            ldap.modifyLDAP(client, modif, 'cn='+group.cn+',ou=groups,dc=boquette,dc=fr')
+        }
 
-            for (let key in group) {
-                const modif = Object.fromEntries(new Map().set(key, group[key]))
-                ldap.modifyLDAP(client, modif, 'cn='+group.cn+',ou=groups,dc=boquette,dc=fr')
-            }
-            client.unbind()
-        })
-        .then(res.sendStatus(200))
+        res.sendStatus(200)
     } catch (err) {
         res.sendStatus(500)
     }
@@ -95,32 +94,30 @@ const updateGroups = ((req, res) => {
         const cn = req.body.cn
         const action = req.body.action
 
-        client = ldap.connexion()
-        
-        new Promise((resolve, reject) => {
-            client.bind('cn='+process.env.LDAP_CN+',dc=boquette,dc=fr', process.env.LDAP_PASSWORD, () => {})
-            var change
-            if (action == "del") {
-                change = new ldapjs.Change({
-                    operation: 'delete',
-                    modification: {
-                        memberUid: uid
-                    }
-                })
-            } else if (action == "add") {
-                change = new ldapjs.Change({
-                    operation: 'add',
-                    modification: {
-                        memberUid: uid
-                    }
-                })
-            } else {
-                res.sendStatus(404)
-            }
-            client.modify('cn='+cn+',ou=groups,dc=boquette,dc=fr', change, () => {resolve()})
-            client.unbind()
-        })
-        .then(res.sendStatus(200))
+        var change
+        if (action == "del") {
+            change = new ldapjs.Change({
+                operation: 'delete',
+                modification: {
+                    memberUid: uid
+                }
+            })
+        } else if (action == "add") {
+            change = new ldapjs.Change({
+                operation: 'add',
+                modification: {
+                    memberUid: uid
+                }
+            })
+        } else {
+            res.sendStatus(404)
+        }
+
+        var client = ldap.connexion()
+        client.bind('cn='+process.env.LDAP_CN+',dc=boquette,dc=fr', process.env.LDAP_PASSWORD, () => {})
+        client.modify('cn='+cn+',ou=groups,dc=boquette,dc=fr', change, (err) => {client.destroy()})
+
+        res.sendStatus(200)
     } catch (err) {
         res.sendStatus(500)
     }
@@ -132,10 +129,9 @@ const deleteGroup = ((req, res) => {
 
         const group = req.body.dn
 
-        client = ldap.connexion()
+        var client = ldap.connexion()
         client.bind('cn='+process.env.LDAP_CN+',dc=boquette,dc=fr', process.env.LDAP_PASSWORD, () => {})
-        client.del(group, () => {})
-        client.unbind()
+        client.del(group, (err) => {client.destroy()})
 
         res.sendStatus(200)
     } catch (err) {

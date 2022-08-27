@@ -9,7 +9,10 @@ const getUser = ((req, res) => {
     try {
         client = ldap.connexion()
         ldap.searchLDAP(client, 'uid='+req.params.userId, 'ou=people, dc=boquette, dc=fr')
-        .then(output => res.send(output))
+        .then(output => {
+            client.destroy()
+            res.send(output)
+        })
     } catch (err) {
         res.sendStatus(500)
     }
@@ -19,7 +22,10 @@ const getAllUsers = ((req, res) => {
     try {
         client = ldap.connexion()
         ldap.searchLDAP(client, 'uid=*', 'ou=people, dc=boquette, dc=fr')
-        .then(output => res.send(output))
+        .then(output => {
+            client.destroy()
+            res.send(output)
+        })
     } catch (err) {
         res.sendStatus(500)
     }
@@ -31,10 +37,10 @@ const createUser = ((req, res) => {
 
         const user = req.body
 
-        client = ldap.connexion()
+        var client = ldap.connexion()
         ldap.searchUidLDAP(client)
         .then(uidNumber => {
-            client.bind('cn='+process.env.LDAP_CN+',dc=boquette,dc=fr', process.env.LDAP_PASSWORD, (err) => {console.log(err)})
+            client.bind('cn='+process.env.LDAP_CN+',dc=boquette,dc=fr', process.env.LDAP_PASSWORD, () => {})
 
             const entry = {
                 objectClass: ['inetOrgPerson', 'posixAccount', 'boquetteUser'],
@@ -51,12 +57,11 @@ const createUser = ((req, res) => {
                 displayName: user.displayName,
                 description: user.description,
                 userPassword: ssha.create('boquette'),
-                bouls: user.bouls
+                activeBouls: user.activeBouls
             }
-            client.add('uid='+entry.uid+',ou=people,dc=boquette,dc=fr', entry, (err) => {console.log(err)})
-            client.unbind()
+            client.add('uid='+entry.uid+',ou=people,dc=boquette,dc=fr', entry, () => {client.destroy()})  
         })
-        .then(res.sendStatus(200)) 
+        .then(res.sendStatus(200))
     } catch (err) {
         res.sendStatus(500)
     }
@@ -68,13 +73,16 @@ const createUsers = ((req, res) => {
 
         const users = req.body
 
-        client = ldap.connexion()
+        var client = ldap.connexion()
         ldap.searchUidLDAP(client)
         .then(uidNumber => {
-            client.bind('cn='+process.env.LDAP_CN+',dc=boquette,dc=fr', process.env.LDAP_PASSWORD, (err) => {console.log(err)})
+            client.destroy()
 
             for (let i = 0; i < users.length; i++) {
                 if(users[i] !== '') {
+                    var client = ldap.connexion()
+                    client.bind('cn='+process.env.LDAP_CN+',dc=boquette,dc=fr', process.env.LDAP_PASSWORD, () => {})
+
                     var user = users[i].split(';')
                     var pass = Math.random().toString(36).slice(-8)
 
@@ -93,15 +101,14 @@ const createUsers = ((req, res) => {
                         displayName: user[2],
                         description: user[1],
                         userPassword: ssha.create(pass),
-                        bouls: user[7]
+                        activeBouls: user[7]
                     }
-                    client.add('uid='+entry.uid+',ou=people,dc=boquette,dc=fr', entry, (err) => {console.log(err)})
+                    client.add('uid='+entry.uid+',ou=people,dc=boquette,dc=fr', entry, () => {client.destroy()})
                     envoiMail(user[5], 'Création de votre compte Boquette',
                         'Bonjour,\n\nVotre compte Boquette à été créé, cependant il vous faut changer votre mot de passe\n\nRendez-vous sur https://utilisateur.boquette.fr/modify pour cela\nVotre mot de passe de vérification : '+pass+'\n\nExcellente journée,\nL\'équipe Boquette Infal'
                     )
                 }
             }
-            client.unbind()
         })
         .then(res.sendStatus(200))
     } catch (err) {
@@ -114,20 +121,17 @@ const modifyUser = ((req, res) => {
         req.setEncoding('utf-8')
 
         const user = req.body
+        
+        for (let key in user) {
+            if (key != 'dn') {
+                const modif = Object.fromEntries(new Map().set(key, user[key]))
 
-        client = ldap.connexion()
-        new Promise((resolve, reject) => {
-            client.bind('cn='+process.env.LDAP_CN+',dc=boquette,dc=fr', process.env.LDAP_PASSWORD, (err) => {console.log(err)})
-
-            for (let key in user) {
-                if (key != 'dn') {
-                    const modif = Object.fromEntries(new Map().set(key, user[key]))
-                    ldap.modifyLDAP(client, modif, user.dn)
-                }
+                var client = ldap.connexion()
+                client.bind('cn='+process.env.LDAP_CN+',dc=boquette,dc=fr', process.env.LDAP_PASSWORD, () => {})
+                ldap.modifyLDAP(client, modif, user.dn)
             }
-            client.unbind()
-        })
-        .then(res.sendStatus(200))
+        }
+        res.sendStatus(200)
     } catch (err) {
         res.sendStatus(500)
     }
@@ -140,23 +144,21 @@ const modifyUsers = ((req, res) => {
         const users = req.body.users
         const headers = req.body.headers.split(';')
 
-        client = ldap.connexion()
-        new Promise((resolve, reject) => {
-            client.bind('cn='+process.env.LDAP_CN+',dc=boquette,dc=fr', process.env.LDAP_PASSWORD, (err) => {console.log(err)})
+        for (let i = 0; i < users.length; i++) {
+            if (users[i] !== '') {
+                var user = users[i].split(';')
 
-            for (let i = 0; i < users.length; i++) {
-                if (users[i] !== '') {
-                    var user = users[i].split(';')
+                for (let j = 0; j < user.length; j++) {
+                    const modif = Object.fromEntries(new Map().set(headers[j], user[j]))
 
-                    for (let j = 0; j < user.length; j++) {
-                        const modif = Object.fromEntries(new Map().set(headers[j], user[j]))
-                        ldap.modifyLDAP(client, modif, 'uid='+user[0]+',ou=people,dc=boquette,dc=fr')
-                    }
+                    var client = ldap.connexion()
+                    client.bind('cn='+process.env.LDAP_CN+',dc=boquette,dc=fr', process.env.LDAP_PASSWORD, () => {})
+                    ldap.modifyLDAP(client, modif, 'uid='+user[0]+',ou=people,dc=boquette,dc=fr')
                 }
             }
-            client.unbind()
-        })
-        .then(res.sendStatus(200))
+        }
+
+        res.sendStatus(200)
     } catch (err) {
         res.sendStatus(500)
     }
@@ -170,18 +172,16 @@ const modifyPass = ((req, res) => {
 
         const pass = Math.random().toString(36).slice(-8)
 
-        client = ldap.connexion()
-        new Promise((resolve, reject) => {
-            client.bind('cn='+process.env.LDAP_CN+',dc=boquette,dc=fr', process.env.LDAP_PASSWORD, (err) => {console.log(err)})
-            const modif = Object.fromEntries(new Map().set('userPassword', ssha.create(pass)))
-            ldap.modifyLDAP(client, modif, user.dn)
-            client.unbind()
-        })
-        .then(
-            envoiMail(user.mail,'Réinitialisation de votre Mot de Passe Boquette',
-            'Bonjour,\n\nLe Mot de Passe de votre compte Boquette à été réinitialisé\n\nVeuillez vous rendre sur https://utilisateur.boquette.fr/modify afin de modifier votre mot de passe\n\nMot de passe de vérification : '+pass+'\n\nExcellente journée,\nL\'équipe Boquette Infal')
-        )
-        .then(res.sendStatus(200))
+        const modif = Object.fromEntries(new Map().set('userPassword', ssha.create(pass)))
+
+        var client = ldap.connexion()
+        client.bind('cn='+process.env.LDAP_CN+',dc=boquette,dc=fr', process.env.LDAP_PASSWORD, () => {})
+        ldap.modifyLDAP(client, modif, user.dn)
+        
+        envoiMail(user.mail,'Réinitialisation de votre Mot de Passe Boquette',
+        'Bonjour,\n\nLe Mot de Passe de votre compte Boquette à été réinitialisé\n\nVeuillez vous rendre sur https://utilisateur.boquette.fr/modify afin de modifier votre mot de passe\n\nMot de passe de vérification : '+pass+'\n\nExcellente journée,\nL\'équipe Boquette Infal')
+        
+        res.sendStatus(200)
     } catch(err) {
         res.sendStatus(500)
     }
@@ -193,10 +193,9 @@ const deleteUser = ((req, res) => {
 
         const user = req.body.dn
 
-        client = ldap.connexion()
-        client.bind('cn='+process.env.LDAP_CN+',dc=boquette,dc=fr', process.env.LDAP_PASSWORD, (err) => {console.log(err)})
-        client.del(user, (err) => {console.log(err)})
-        client.unbind()
+        var client = ldap.connexion()
+        client.bind('cn='+process.env.LDAP_CN+',dc=boquette,dc=fr', process.env.LDAP_PASSWORD, () => {})
+        client.del(user, () => {client.destroy()})
 
         res.sendStatus(200)
     } catch (err) {
