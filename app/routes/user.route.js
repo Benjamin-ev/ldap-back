@@ -9,7 +9,7 @@ const {
 
 router.get('/', getUser)
 
-router.post('/', createUser)
+// router.post('/', createUser)
 
 router.put('/', modifyUser)
 

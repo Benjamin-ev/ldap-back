@@ -76,10 +76,7 @@ const modifyGroup = ((req, res) => {
 
         for (let key in group) {
             const modif = Object.fromEntries(new Map().set(key, group[key]))
-            
-            var client = ldap.connexion()
-            client.bind('cn='+process.env.LDAP_CN+',dc=boquette,dc=fr', process.env.LDAP_PASSWORD, () => {})
-            ldap.modifyLDAP(client, modif, 'cn='+group.cn+',ou=groups,dc=boquette,dc=fr')
+            ldap.modifyLDAP(modif, 'cn='+group.cn+',ou=groups,dc=boquette,dc=fr')
         }
 
         res.sendStatus(200)
@@ -129,9 +126,7 @@ const deleteGroup = ((req, res) => {
 
         const group = req.body.dn
 
-        var client = ldap.connexion()
-        client.bind('cn='+process.env.LDAP_CN+',dc=boquette,dc=fr', process.env.LDAP_PASSWORD, () => {})
-        client.del(group, (err) => {client.destroy()})
+        ldap.delLDAP(group)
 
         res.sendStatus(200)
     } catch (err) {

@@ -80,9 +80,6 @@ const createUsers = ((req, res) => {
 
             for (let i = 0; i < users.length; i++) {
                 if(users[i] !== '') {
-                    var client = ldap.connexion()
-                    client.bind('cn='+process.env.LDAP_CN+',dc=boquette,dc=fr', process.env.LDAP_PASSWORD, () => {})
-
                     var user = users[i].split(';')
                     var pass = Math.random().toString(36).slice(-8)
 
@@ -103,9 +100,9 @@ const createUsers = ((req, res) => {
                         userPassword: ssha.create(pass),
                         activeBouls: user[7]
                     }
-                    client.add('uid='+entry.uid+',ou=people,dc=boquette,dc=fr', entry, () => {client.destroy()})
+                    ldap.addLDAP(entry)
                     envoiMail(user[5], 'Création de votre compte Boquette',
-                        'Bonjour,\n\nVotre compte Boquette à été créé, cependant il vous faut changer votre mot de passe\n\nRendez-vous sur https://utilisateur.boquette.fr/modify pour cela\nVotre mot de passe de vérification : '+pass+'\n\nExcellente journée,\nL\'équipe Boquette Infal'
+                        'Bonjour,\n\nVotre compte Boquette a été créé, cependant il vous faut changer votre mot de passe\n\nRendez-vous sur https://utilisateur.boquette.fr/modify pour cela\nVotre mot de passe de vérification : '+pass+'\n\nExcellente journée,\nL\'équipe Boquette Infal'
                     )
                 }
             }
@@ -125,12 +122,10 @@ const modifyUser = ((req, res) => {
         for (let key in user) {
             if (key != 'dn') {
                 const modif = Object.fromEntries(new Map().set(key, user[key]))
-
-                var client = ldap.connexion()
-                client.bind('cn='+process.env.LDAP_CN+',dc=boquette,dc=fr', process.env.LDAP_PASSWORD, () => {})
-                ldap.modifyLDAP(client, modif, user.dn)
+                ldap.modifyLDAP(modif, user.dn)
             }
         }
+
         res.sendStatus(200)
     } catch (err) {
         res.sendStatus(500)
@@ -150,10 +145,7 @@ const modifyUsers = ((req, res) => {
 
                 for (let j = 0; j < user.length; j++) {
                     const modif = Object.fromEntries(new Map().set(headers[j], user[j]))
-
-                    var client = ldap.connexion()
-                    client.bind('cn='+process.env.LDAP_CN+',dc=boquette,dc=fr', process.env.LDAP_PASSWORD, () => {})
-                    ldap.modifyLDAP(client, modif, 'uid='+user[0]+',ou=people,dc=boquette,dc=fr')
+                    ldap.modifyLDAP(modif, 'uid='+user[0]+',ou=people,dc=boquette,dc=fr')
                 }
             }
         }
@@ -174,12 +166,36 @@ const modifyPass = ((req, res) => {
 
         const modif = Object.fromEntries(new Map().set('userPassword', ssha.create(pass)))
 
-        var client = ldap.connexion()
-        client.bind('cn='+process.env.LDAP_CN+',dc=boquette,dc=fr', process.env.LDAP_PASSWORD, () => {})
-        ldap.modifyLDAP(client, modif, user.dn)
+        ldap.modifyLDAP(modif, user.dn)
         
         envoiMail(user.mail,'Réinitialisation de votre Mot de Passe Boquette',
-        'Bonjour,\n\nLe Mot de Passe de votre compte Boquette à été réinitialisé\n\nVeuillez vous rendre sur https://utilisateur.boquette.fr/modify afin de modifier votre mot de passe\n\nMot de passe de vérification : '+pass+'\n\nExcellente journée,\nL\'équipe Boquette Infal')
+        'Bonjour,\n\nLe Mot de Passe de votre compte Boquette a été réinitialisé\n\nVeuillez vous rendre sur https://utilisateur.boquette.fr/modify afin de modifier votre mot de passe\n\nMot de passe de vérification : '+pass+'\n\nExcellente journée,\nL\'équipe Boquette Infal')
+        
+        res.sendStatus(200)
+    } catch(err) {
+        res.sendStatus(500)
+    }
+})
+
+const modifyMultiplePass = ((req, res) => {
+    try {
+        req.setEncoding('utf-8')
+
+        const users = req.body
+
+        for (let i = 0; i < users.length; i++) {
+            var user = users[i].split(';')
+            var pass = Math.random().toString(36).slice(-8)
+
+            if (user[0] != '' && user[1] != '') {
+                var modif = Object.fromEntries(new Map().set('userPassword', ssha.create(pass)))
+
+                ldap.modifyLDAP(modif, 'uid='+user[0]+',ou=people,dc=boquette,dc=fr')
+                
+                envoiMail(user[1],'Réinitialisation de votre Mot de Passe Boquette',
+                'Bonjour,\n\nLe Mot de Passe de votre compte Boquette à été réinitialisé\n\nVeuillez vous rendre sur https://utilisateur.boquette.fr/modify afin de modifier votre mot de passe\n\nMot de passe de vérification : '+pass+'\n\nExcellente journée,\nL\'équipe Boquette Infal')
+            }
+        }
         
         res.sendStatus(200)
     } catch(err) {
@@ -193,9 +209,7 @@ const deleteUser = ((req, res) => {
 
         const user = req.body.dn
 
-        var client = ldap.connexion()
-        client.bind('cn='+process.env.LDAP_CN+',dc=boquette,dc=fr', process.env.LDAP_PASSWORD, () => {})
-        client.del(user, () => {client.destroy()})
+        ldap.delLDAP(user)
 
         res.sendStatus(200)
     } catch (err) {
@@ -220,8 +234,8 @@ const envoiMail = ((dest, subject, text) => {
     }
 
     mailTransporter.sendMail(mailDetails, function(err, data) {
-        if(err) {
-            console.log('Error Mail', err)
+        if (err) {
+            console.log('Error Mail : ', err)
         }
     })
 })
@@ -234,5 +248,6 @@ module.exports = {
     modifyUser,
     modifyUsers,
     modifyPass,
+    modifyMultiplePass,
     deleteUser
 }

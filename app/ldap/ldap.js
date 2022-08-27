@@ -52,7 +52,16 @@ const searchUidLDAP = ((client) => {
     })
 })
 
-const modifyLDAP = ((client, modif, dn) => {
+const addLDAP = ((entry) => {
+    var client = ldap.connexion()
+    client.bind('cn='+process.env.LDAP_CN+',dc=boquette,dc=fr', process.env.LDAP_PASSWORD, () => {})
+    client.add('uid='+entry.uid+',ou=people,dc=boquette,dc=fr', entry, () => {client.destroy()})
+})
+
+const modifyLDAP = ((modif, dn) => {
+    var client = connexion()
+    client.bind('cn='+process.env.LDAP_CN+',dc=boquette,dc=fr', process.env.LDAP_PASSWORD, () => {})
+
     const change = new ldap.Change({
         operation: 'replace',
         modification: modif
@@ -60,9 +69,17 @@ const modifyLDAP = ((client, modif, dn) => {
     client.modify(dn, change, (err) => {client.destroy()})
 })
 
+const delLDAP = ((user) => {
+    var client = connexion()
+    client.bind('cn='+process.env.LDAP_CN+',dc=boquette,dc=fr', process.env.LDAP_PASSWORD, () => {})
+    client.del(user, () => {client.destroy()})
+})
+
 module.exports = {
     connexion,
     searchLDAP,
     searchUidLDAP,
-    modifyLDAP
+    addLDAP,
+    modifyLDAP,
+    delLDAP
 }

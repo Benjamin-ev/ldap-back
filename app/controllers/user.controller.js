@@ -33,7 +33,7 @@ const createUser = ((req, res) => {
         req.setEncoding('utf8')
 
         const user = req.body
-        var uid = user.givenName.toLowerCase().replace(/\s+/g, '')+'.'+user.sn.toLowerCase().replace(/\s+/g, '')+'.2021'//+new Date().getFullYear()
+        var uid = user.givenName.toLowerCase().replace(/\s+/g, '')+'.'+user.sn.toLowerCase().replace(/\s+/g, '')+new Date().getFullYear()
 
         var client = ldap.connexion()
         ldap.searchUidLDAP(client)
@@ -41,7 +41,7 @@ const createUser = ((req, res) => {
             client.bind('cn='+process.env.LDAP_CN+',dc=boquette,dc=fr', process.env.LDAP_PASSWORD, () => {})
             
             const entry = {
-                objectClass: ['inetOrgPerson', 'posixAccount'],
+                objectClass: ['inetOrgPerson', 'posixAccount', 'boquetteUser'],
                 cn: uid,
                 homeDirectory: '/home/'+uid,
                 loginShell: '/bin/bash',
@@ -83,11 +83,9 @@ const modifyUser = ((req, res) => {
                         if (key == 'userPassword') {
                             user.userPassword = ssha.create(user.userPassword)
                         }
+
                         const modif = Object.fromEntries(new Map().set(key, user[key]))
-                        
-                        var client = ldap.connexion()
-                        client.bind('cn='+process.env.LDAP_CN+',dc=boquette,dc=fr', process.env.LDAP_PASSWORD, (err) => {console.log(err)})
-                        ldap.modifyLDAP(client, modif, 'uid='+req.body.uid+',ou=people,dc=boquette,dc=fr')
+                        ldap.modifyLDAP(modif, 'uid='+req.body.uid+',ou=people,dc=boquette,dc=fr')
                     }
                 }
                 res.sendStatus(200)
