@@ -85,7 +85,7 @@ const modifyUser = ((req, res) => {
                         }
 
                         const modif = Object.fromEntries(new Map().set(key, user[key]))
-                        ldap.modifyLDAP(modif, 'uid='+req.body.uid+',ou=people,dc=boquette,dc=fr')
+                        ldap.modifyLDAP('replace', modif, 'uid='+req.body.uid+',ou=people,dc=boquette,dc=fr')
                     }
                 }
                 res.sendStatus(200)

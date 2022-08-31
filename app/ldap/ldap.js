@@ -18,6 +18,8 @@ const searchLDAP = function(client, filter, dn) {
             filter: filter,
             scope: 'sub'
         }
+        client.bind('cn='+process.env.LDAP_CN+',dc=boquette,dc=fr', process.env.LDAP_PASSWORD, () => {})
+
         client.search(dn, opts, (err, response) => {
             if (!err) {
                 var output = []
@@ -53,17 +55,17 @@ const searchUidLDAP = ((client) => {
 })
 
 const addLDAP = ((entry) => {
-    var client = ldap.connexion()
+    var client = connexion()
     client.bind('cn='+process.env.LDAP_CN+',dc=boquette,dc=fr', process.env.LDAP_PASSWORD, () => {})
     client.add('uid='+entry.uid+',ou=people,dc=boquette,dc=fr', entry, () => {client.destroy()})
 })
 
-const modifyLDAP = ((modif, dn) => {
+const modifyLDAP = ((action, modif, dn) => {
     var client = connexion()
     client.bind('cn='+process.env.LDAP_CN+',dc=boquette,dc=fr', process.env.LDAP_PASSWORD, () => {})
 
     const change = new ldap.Change({
-        operation: 'replace',
+        operation: action,
         modification: modif
     })
     client.modify(dn, change, (err) => {client.destroy()})

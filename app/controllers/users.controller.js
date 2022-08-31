@@ -21,7 +21,7 @@ const getUser = ((req, res) => {
 const getAllUsers = ((req, res) => {
     try {
         client = ldap.connexion()
-        ldap.searchLDAP(client, 'uid=*', 'ou=people, dc=boquette, dc=fr')
+        ldap.searchLDAP(client, '(uid=*)', 'ou=people, dc=boquette, dc=fr')
         .then(output => {
             client.destroy()
             res.send(output)
@@ -40,7 +40,7 @@ const createUser = ((req, res) => {
         var client = ldap.connexion()
         ldap.searchUidLDAP(client)
         .then(uidNumber => {
-            client.bind('cn='+process.env.LDAP_CN+',dc=boquette,dc=fr', process.env.LDAP_PASSWORD, () => {})
+            var pass = Math.random().toString(36).slice(-8)
 
             const entry = {
                 objectClass: ['inetOrgPerson', 'posixAccount', 'boquetteUser'],
@@ -56,10 +56,13 @@ const createUser = ((req, res) => {
                 mobile: user.mobile,
                 displayName: user.displayName,
                 description: user.description,
-                userPassword: ssha.create('boquette'),
-                activeBouls: user.activeBouls
+                userPassword: ssha.create(pass)
             }
-            client.add('uid='+entry.uid+',ou=people,dc=boquette,dc=fr', entry, () => {client.destroy()})  
+            client.bind('cn='+process.env.LDAP_CN+',dc=boquette,dc=fr', process.env.LDAP_PASSWORD, () => {})
+            client.add('uid='+entry.uid+',ou=people,dc=boquette,dc=fr', entry, () => {client.destroy()})
+            envoiMail(user.mail, 'Création de votre compte Boquette',
+                'Bonjour,\n\nVotre compte Boquette a été créé, cependant il vous faut changer votre mot de passe\n\nRendez-vous sur https://utilisateur.boquette.fr/modify pour cela\nVotre mot de passe de vérification : '+pass+'\n\nExcellente journée,\nL\'équipe Boquette Infal'
+            )
         })
         .then(res.sendStatus(200))
     } catch (err) {
@@ -97,8 +100,7 @@ const createUsers = ((req, res) => {
                         mobile: user[6],
                         displayName: user[2],
                         description: user[1],
-                        userPassword: ssha.create(pass),
-                        activeBouls: user[7]
+                        userPassword: ssha.create(pass)
                     }
                     ldap.addLDAP(entry)
                     envoiMail(user[5], 'Création de votre compte Boquette',
@@ -122,7 +124,7 @@ const modifyUser = ((req, res) => {
         for (let key in user) {
             if (key != 'dn') {
                 const modif = Object.fromEntries(new Map().set(key, user[key]))
-                ldap.modifyLDAP(modif, user.dn)
+                ldap.modifyLDAP('replace', modif, user.dn)
             }
         }
 
@@ -145,7 +147,7 @@ const modifyUsers = ((req, res) => {
 
                 for (let j = 0; j < user.length; j++) {
                     const modif = Object.fromEntries(new Map().set(headers[j], user[j]))
-                    ldap.modifyLDAP(modif, 'uid='+user[0]+',ou=people,dc=boquette,dc=fr')
+                    ldap.modifyLDAP('replace', modif, 'uid='+user[0]+',ou=people,dc=boquette,dc=fr')
                 }
             }
         }
@@ -166,7 +168,7 @@ const modifyPass = ((req, res) => {
 
         const modif = Object.fromEntries(new Map().set('userPassword', ssha.create(pass)))
 
-        ldap.modifyLDAP(modif, user.dn)
+        ldap.modifyLDAP('replace', modif, user.dn)
         
         envoiMail(user.mail,'Réinitialisation de votre Mot de Passe Boquette',
         'Bonjour,\n\nLe Mot de Passe de votre compte Boquette a été réinitialisé\n\nVeuillez vous rendre sur https://utilisateur.boquette.fr/modify afin de modifier votre mot de passe\n\nMot de passe de vérification : '+pass+'\n\nExcellente journée,\nL\'équipe Boquette Infal')
@@ -190,7 +192,7 @@ const modifyMultiplePass = ((req, res) => {
             if (user[0] != '' && user[1] != '') {
                 var modif = Object.fromEntries(new Map().set('userPassword', ssha.create(pass)))
 
-                ldap.modifyLDAP(modif, 'uid='+user[0]+',ou=people,dc=boquette,dc=fr')
+                ldap.modifyLDAP('replace', modif, 'uid='+user[0]+',ou=people,dc=boquette,dc=fr')
                 
                 envoiMail(user[1],'Réinitialisation de votre Mot de Passe Boquette',
                 'Bonjour,\n\nLe Mot de Passe de votre compte Boquette à été réinitialisé\n\nVeuillez vous rendre sur https://utilisateur.boquette.fr/modify afin de modifier votre mot de passe\n\nMot de passe de vérification : '+pass+'\n\nExcellente journée,\nL\'équipe Boquette Infal')
@@ -207,9 +209,7 @@ const deleteUser = ((req, res) => {
     try {
         req.setEncoding('utf8')
 
-        const user = req.body.dn
-
-        ldap.delLDAP(user)
+        ldap.delLDAP(req.body.dn)
 
         res.sendStatus(200)
     } catch (err) {
