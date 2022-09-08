@@ -96,8 +96,30 @@ const modifyUser = ((req, res) => {
     }
 })
 
+const resetPassword = (req, res) => {
+    try {
+        req.setEncoding('utf-8')
+
+        var client = ldap.connexion()
+        client.bind('uid='+req.body.uid+',ou=people,dc=boquette,dc=fr', req.body.oldPassword, (err) => {
+            if (err) {
+                client.destroy()
+                res.sendStatus(401)
+            } else {
+                client.unbind()
+                ldap.modifyLDAP('replace', {userPassword: req.body.newPassword}, 'uid='+req.body.uid+',ou=people,dc=boquette,dc=fr')
+                res.sendStatus(200)
+            }
+        })
+    } catch (err) {
+        console.log(err)
+        res.sendStatus(500)
+    }
+}
+
 module.exports = {
     getUser,
     createUser,
-    modifyUser
+    modifyUser,
+    resetPassword
 }

@@ -4,7 +4,8 @@ const router = express.Router()
 const {
     getUser,
     createUser,
-    modifyUser
+    modifyUser,
+    resetPassword
 } = require('../controllers/user.controller.js')
 
 router.get('/', getUser)
@@ -12,5 +13,7 @@ router.get('/', getUser)
 // router.post('/', createUser)
 
 router.put('/', modifyUser)
+
+router.patch('/', resetPassword)
 
 module.exports = router

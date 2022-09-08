@@ -61,7 +61,15 @@ const createUser = ((req, res) => {
             client.bind('cn='+process.env.LDAP_CN+',dc=boquette,dc=fr', process.env.LDAP_PASSWORD, () => {})
             client.add('uid='+entry.uid+',ou=people,dc=boquette,dc=fr', entry, () => {client.destroy()})
             envoiMail(user.mail, 'Création de votre compte Boquette',
-                'Bonjour,\n\nVotre compte Boquette a été créé, cependant il vous faut changer votre mot de passe\n\nRendez-vous sur https://utilisateur.boquette.fr/modify pour cela\nVotre mot de passe de vérification : '+pass+'\n\nExcellente journée,\nL\'équipe Boquette Infal'
+                'Bonjour,\n\n'+
+                'Votre compte Boquette a été créé, cependant il vous faut changer votre mot de passe\n\n'+
+                'Rendez-vous sur https://utilisateur.boquette.fr/reset?uid='+entry.uid+'&password='+pass+' pour cela\n'+
+                'Puis saisissez votre nouveau mot de passe\n\n'+
+                'Si le lien ne fonctionne pas, rendez-vous sur https://utilisateur.boquette.fr/reset \n'+
+                'Votre nom d\'utilisateur : '+user.uid+
+                'Votre mot de passe de vérification : '+pass+'\n\n'+
+                'Excellente journée,\n'+
+                'L\'équipe Boquette Infal'
             )
         })
         .then(res.sendStatus(200))
@@ -104,7 +112,15 @@ const createUsers = ((req, res) => {
                     }
                     ldap.addLDAP(entry)
                     envoiMail(user[5], 'Création de votre compte Boquette',
-                        'Bonjour,\n\nVotre compte Boquette a été créé, cependant il vous faut changer votre mot de passe\n\nRendez-vous sur https://utilisateur.boquette.fr/modify pour cela\nVotre mot de passe de vérification : '+pass+'\n\nExcellente journée,\nL\'équipe Boquette Infal'
+                        'Bonjour,\n\n'+
+                        'Votre compte Boquette a été créé, cependant il vous faut changer votre mot de passe\n\n'+
+                        'Rendez-vous sur https://utilisateur.boquette.fr/reset?uid='+user[0]+'&password='+pass+' pour cela\n'+
+                        'Puis saisissez votre nouveau mot de passe\n\n'+
+                        'Si le lien ne fonctionne pas, rendez-vous sur https://utilisateur.boquette.fr/reset \n'+
+                        'Votre nom d\'utilisateur : '+user[0]+
+                        'Votre mot de passe de vérification : '+pass+'\n\n'+
+                        'Excellente journée,\n'+
+                        'L\'équipe Boquette Infal'
                     )
                 }
             }
@@ -170,9 +186,17 @@ const modifyPass = ((req, res) => {
 
         ldap.modifyLDAP('replace', modif, user.dn)
         
-        envoiMail(user.mail,'Réinitialisation de votre Mot de Passe Boquette',
-        'Bonjour,\n\nLe Mot de Passe de votre compte Boquette a été réinitialisé\n\nVeuillez vous rendre sur https://utilisateur.boquette.fr/modify afin de modifier votre mot de passe\n\nMot de passe de vérification : '+pass+'\n\nExcellente journée,\nL\'équipe Boquette Infal')
-        
+        envoiMail(user.mail, 'Réinitialisation de votre Mot de Passe Boquette',
+            'Bonjour,\n\n'+
+            'Le Mot de Passe de votre compte Boquette a été réinitialisé\n\n'+
+            'Rendez-vous sur https://utilisateur.boquette.fr/reset?uid='+user.uid+'&password='+pass+'\n'+
+            'Afin de saisir votre nouveau mot de passe\n\n'+
+            'Si le lien ne fonctionne pas, rendez-vous sur https://utilisateur.boquette.fr/reset \n'+
+            'Votre nom d\'utilisateur : '+user.uid+'\n'+
+            'Votre mot de passe de vérification : '+pass+'\n\n'+
+            'Excellente journée,\n'+
+            'L\'équipe Boquette Infal'
+        )        
         res.sendStatus(200)
     } catch(err) {
         res.sendStatus(500)
@@ -194,8 +218,17 @@ const modifyMultiplePass = ((req, res) => {
 
                 ldap.modifyLDAP('replace', modif, 'uid='+user[0]+',ou=people,dc=boquette,dc=fr')
                 
-                envoiMail(user[1],'Réinitialisation de votre Mot de Passe Boquette',
-                'Bonjour,\n\nLe Mot de Passe de votre compte Boquette à été réinitialisé\n\nVeuillez vous rendre sur https://utilisateur.boquette.fr/modify afin de modifier votre mot de passe\n\nMot de passe de vérification : '+pass+'\n\nExcellente journée,\nL\'équipe Boquette Infal')
+                envoiMail(user[1], 'Réinitialisation de votre Mot de Passe Boquette',
+                    'Bonjour,\n\n'+
+                    'Le Mot de Passe de votre compte Boquette a été réinitialisé\n\n'+
+                    'Rendez-vous sur https://utilisateur.boquette.fr/reset?uid='+user[0]+'&password='+pass+'\n'+
+                    'Afin de saisir votre nouveau mot de passe\n\n'+
+                    'Si le lien ne fonctionne pas, rendez-vous sur https://utilisateur.boquette.fr/reset \n'+
+                    'Votre nom d\'utilisateur : '+user[0]+'\n'+
+                    'Votre mot de passe de vérification : '+pass+'\n\n'+
+                    'Excellente journée,\n'+
+                    'L\'équipe Boquette Infal'
+                )
             }
         }
         
