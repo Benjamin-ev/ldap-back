@@ -19,7 +19,7 @@ app.use(cors({
 app.use(express.json())
 app.use(express.static(path.join(__dirname, process.env.FRONT_URL)))
 
-const routes = ['users', 'groups', 'modify', 'new', 'profile']
+const routes = ['users', 'groups', 'modify', 'profile', 'reset']
 app.get('/', (req,res) => {
   res.sendFile(path.join(__dirname, process.env.FRONT_URL+'/index.html')) // Route principale, page d'accueil
 })
