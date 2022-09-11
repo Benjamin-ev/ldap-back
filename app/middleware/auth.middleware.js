@@ -7,13 +7,13 @@ const auth = ((req, res, next) => {
         const { headers } = req
         
         if (!headers.cookie) {
-            return res.status(401).send("Unable to find Cookies")
+            return res.status(402).send('Cookies invalides')
         }
     
         const accessToken = headers.cookie.replace('access_token=', '')
     
         if (!headers || !headers['x-xsrf-token']) {
-            return res.status(401).send("Unable to find Tokens")
+            return res.status(402).send('Token invalide')
         }
         
         const xsrfToken = headers['x-xsrf-token']
@@ -21,7 +21,7 @@ const auth = ((req, res, next) => {
         const decodedToken = jwt.verify(accessToken, process.env.ACCESS_TOKEN_SECRET)
     
         if (xsrfToken !== decodedToken.xsrfToken) {
-            return res.status(401).send("Invalid Credentials")
+            return res.status(402).send('Token invalide')
         }
     
         const username = decodedToken.data
@@ -40,7 +40,7 @@ const auth = ((req, res, next) => {
                         client.bind('cn='+username+',dc=boquette, dc=fr', process.env.LDAP_PASSWORD, (err) => {
                             if (err) {
                                 client.destroy()
-                                return res.status(401).send("Invalid Credentials")
+                                return res.status(402).send('Utilisateur invalide')
                             } else {
                                 client.destroy()
                                 return next()
@@ -51,7 +51,7 @@ const auth = ((req, res, next) => {
             }
         })
     } catch (err) {
-        return res.status(500).send("Internal Authentification Server Error")
+        return res.status(500).send("Erreur lors de l'authentification")
     }
 })
 
