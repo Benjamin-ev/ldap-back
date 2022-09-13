@@ -98,6 +98,24 @@ const modifyGroup = ((req, res) => {
     }
 })
 
+const addUsers = ((req, res) => {
+    try {
+        req.setEncoding('utf-8')
+
+        const users = req.body.users
+
+        for (let i = 0; i < users.length; i++) {
+            var user = users[i]
+
+            ldap.modifyLDAP('add', {memberUid: user}, 'cn='+req.body.cn+',ou=groups,dc=boquette,dc=fr')
+        }
+
+        res.sendStatus(200)
+    } catch (err) {
+        res.sendStatus(500)
+    }
+})
+
 const updateGroups = ((req, res) => {
     try {
         req.setEncoding('utf-8')
@@ -188,6 +206,7 @@ module.exports = {
     getBouls,
     createGroup,
     modifyGroup,
+    addUsers,
     updateGroups,
     updateBouls,
     transfertGroup,

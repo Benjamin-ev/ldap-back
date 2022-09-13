@@ -7,6 +7,7 @@ const  {
     getBouls,
     createGroup,
     modifyGroup,
+    addUsers,
     updateBouls,
     updateGroups,
     transfertGroup,
@@ -25,6 +26,8 @@ router.post('/', createGroup)
 router.put('/', modifyGroup)
 
 router.put('/bouls', updateBouls)
+
+router.patch('/users', addUsers)
 
 router.patch('/', updateGroups)
 

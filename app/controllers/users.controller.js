@@ -61,7 +61,7 @@ const createUser = ((req, res) => {
             client.bind('cn='+process.env.LDAP_CN+',dc=boquette,dc=fr', process.env.LDAP_PASSWORD, () => {})
             client.add('uid='+entry.uid+',ou=people,dc=boquette,dc=fr', entry, () => {client.destroy()})
             envoiMail(user.mail, 'Création de votre compte Boquette',
-                'Bonjour,\n\n'+
+                'Bonjour '+user.uid+',\n\n'+
                 'Votre compte Boquette a été créé, cependant il vous faut changer votre mot de passe\n\n'+
                 'Rendez-vous sur https://utilisateur.boquette.fr/reset?uid='+entry.uid+'&password='+pass+' pour cela\n'+
                 'Puis saisissez votre nouveau mot de passe\n\n'+
@@ -112,7 +112,7 @@ const createUsers = ((req, res) => {
                     }
                     ldap.addLDAP(entry)
                     envoiMail(user[5], 'Création de votre compte Boquette',
-                        'Bonjour,\n\n'+
+                        'Bonjour '+user[0]+',\n\n'+
                         'Votre compte Boquette a été créé, cependant il vous faut changer votre mot de passe\n\n'+
                         'Rendez-vous sur https://utilisateur.boquette.fr/reset?uid='+user[0]+'&password='+pass+' pour cela\n'+
                         'Puis saisissez votre nouveau mot de passe\n\n'+
@@ -187,7 +187,7 @@ const modifyPass = ((req, res) => {
         ldap.modifyLDAP('replace', modif, user.dn)
         
         envoiMail(user.mail, 'Réinitialisation de votre Mot de Passe Boquette',
-            'Bonjour,\n\n'+
+            'Bonjour '+user.uid+',\n\n'+
             'Le Mot de Passe de votre compte Boquette a été réinitialisé\n\n'+
             'Rendez-vous sur https://utilisateur.boquette.fr/reset?uid='+user.uid+'&password='+pass+'\n'+
             'Afin de saisir votre nouveau mot de passe\n\n'+
@@ -219,7 +219,7 @@ const modifyMultiplePass = ((req, res) => {
                 ldap.modifyLDAP('replace', modif, 'uid='+user[0]+',ou=people,dc=boquette,dc=fr')
                 
                 envoiMail(user[1], 'Réinitialisation de votre Mot de Passe Boquette',
-                    'Bonjour,\n\n'+
+                    'Bonjour '+user.uid+',\n\n'+
                     'Le Mot de Passe de votre compte Boquette a été réinitialisé\n\n'+
                     'Rendez-vous sur https://utilisateur.boquette.fr/reset?uid='+user[0]+'&password='+pass+'\n'+
                     'Afin de saisir votre nouveau mot de passe\n\n'+
