@@ -6,7 +6,6 @@ const path = require('path')
 require('dotenv').config()
 
 const authRoute = require('./app/routes/auth.route.js')
-const userRoute = require('./app/routes/user.route.js')
 const usersRoute = require('./app/routes/users.route.js')
 const groupsRoute = require('./app/routes/groups.route.js')
 const auth = require('./app/middleware/auth.middleware')
@@ -19,7 +18,7 @@ app.use(cors({
 app.use(express.json())
 app.use(express.static(path.join(__dirname, process.env.FRONT_URL)))
 
-const routes = ['users', 'groups', 'modify', 'profile', 'reset']
+const routes = ['users/add', 'users/edit','groups', 'groups/add', 'groups/edit', 'groups/transfert']
 app.get('/', (req,res) => {
   res.sendFile(path.join(__dirname, process.env.FRONT_URL+'/index.html')) // Route principale, page d'accueil
 })
@@ -30,7 +29,6 @@ routes.map(item =>
 )
 
 app.use('/api/auth', authRoute) // Routes sans besoin d'identification préalable
-app.use('/api/user', userRoute)
 app.use('/api/users', auth, usersRoute) // Routes avec le middleware d'authentification
 app.use('/api/groups', auth, groupsRoute)
 

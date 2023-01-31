@@ -5,7 +5,7 @@ require('dotenv').config()
 const auth = ((req, res, next) => {
     try {
         const { headers } = req
-        
+
         if (!headers.cookie) {
             return res.status(402).send('Cookies invalides')
         }

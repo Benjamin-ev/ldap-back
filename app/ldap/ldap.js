@@ -57,7 +57,7 @@ const searchUidLDAP = ((client) => {
 const addLDAP = ((entry) => {
     var client = connexion()
     client.bind('cn='+process.env.LDAP_CN+',dc=boquette,dc=fr', process.env.LDAP_PASSWORD, () => {})
-    client.add('uid='+entry.uid+',ou=people,dc=boquette,dc=fr', entry, () => {client.destroy()})
+    client.add('uid='+entry.uid+',ou=people,dc=boquette,dc=fr', entry, (err) => {client.destroy()})
 })
 
 const modifyLDAP = ((action, modif, dn) => {

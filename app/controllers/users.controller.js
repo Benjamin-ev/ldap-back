@@ -2,6 +2,8 @@ const ssha = require('ssha')
 const ldap = require('../ldap/ldap')
 var nodemailer = require('nodemailer')
 
+require('events').EventEmitter.prototype._maxListeners = 250;
+
 require('dotenv').config()
 
 //Récupérer les informations sur un utilisateur
@@ -91,9 +93,9 @@ const createUsers = ((req, res) => {
 
             for (let i = 0; i < users.length; i++) {
                 if(users[i] !== '') {
-                    var user = users[i].split(';')
+                    var user = users[i].split(',')
                     var pass = Math.random().toString(36).slice(-8)
-
+                    
                     const entry = {
                         objectClass: ['inetOrgPerson', 'posixAccount', 'boquetteUser'],
                         cn: user[0],
@@ -111,17 +113,17 @@ const createUsers = ((req, res) => {
                         userPassword: ssha.create(pass)
                     }
                     ldap.addLDAP(entry)
-                    envoiMail(user[5], 'Création de votre compte Boquette',
-                        'Bonjour '+user[0]+',\n\n'+
-                        'Votre compte Boquette a été créé, cependant il vous faut changer votre mot de passe\n\n'+
-                        'Rendez-vous sur https://utilisateur.boquette.fr/reset?uid='+user[0]+'&password='+pass+' pour cela\n'+
-                        'Puis saisissez votre nouveau mot de passe\n\n'+
-                        'Si le lien ne fonctionne pas, rendez-vous sur https://utilisateur.boquette.fr/reset \n'+
-                        'Votre nom d\'utilisateur : '+user[0]+
-                        'Votre mot de passe de vérification : '+pass+'\n\n'+
-                        'Excellente journée,\n'+
-                        'L\'équipe Boquette Infal'
-                    )
+                    // envoiMail(user[5], 'Création de votre compte Boquette',
+                    //     'Bonjour '+user[0]+',\n\n'+
+                    //     'Votre compte Boquette a été créé, cependant il vous faut changer votre mot de passe\n\n'+
+                    //     'Rendez-vous sur https://utilisateur.boquette.fr/reset?uid='+user[0]+'&password='+pass+' pour cela\n'+
+                    //     'Puis saisissez votre nouveau mot de passe\n\n'+
+                    //     'Si le lien ne fonctionne pas, rendez-vous sur https://utilisateur.boquette.fr/reset \n'+
+                    //     'Votre nom d\'utilisateur : '+user[0]+
+                    //     'Votre mot de passe de vérification : '+pass+'\n\n'+
+                    //     'Excellente journée,\n'+
+                    //     'L\'équipe Boquette Infal'
+                    // )
                 }
             }
         })
@@ -210,7 +212,7 @@ const modifyMultiplePass = ((req, res) => {
         const users = req.body
 
         for (let i = 0; i < users.length; i++) {
-            var user = users[i].split(';')
+            var user = users[i].split(',')
             var pass = Math.random().toString(36).slice(-8)
 
             if (user[0] != '' && user[1] != '') {
@@ -253,6 +255,7 @@ const deleteUser = ((req, res) => {
 const envoiMail = ((dest, subject, text) => {
     let mailTransporter = nodemailer.createTransport({
         host: 'ssl0.ovh.net',
+        secure: true,
         auth: {
             user: process.env.MAIL_ADDRESS,
             pass: process.env.MAIL_MDP
